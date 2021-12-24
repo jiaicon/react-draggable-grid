@@ -18,7 +18,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:STRML/react-grid-layout.git"
+    "url": "https://github.com/jiaicon/react-draggable-grid"
   },
   "keywords": [
     "react",
@@ -30,12 +30,12 @@
     "fluid",
     "responsive"
   ],
-  "author": "Samuel Reed <samuel.trace.reed@gmail.com> (http://strml.net/)",
+  "author": "Jia Icon",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/STRML/react-grid-layout/issues"
+    "url": "https://github.com/jiaicon/react-draggable-grid/issues"
   },
-  "homepage": "https://github.com/STRML/react-grid-layout",
+  "homepage": "https://github.com/jiaicon/react-draggable-grid",
   "dependencies": {
     "@babel/eslint-parser": "^7.16.3",
     "clsx": "^1.1.1",
