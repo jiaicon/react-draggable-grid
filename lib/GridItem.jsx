@@ -601,7 +601,6 @@ export default class GridItem extends React.Component<Props, State> {
     if (handle[handle.length - 1] === 'w') {
       newLeft -= deltaWidth;
     }
-    console.log(newLeft, newTop)
     const newLayoutItem = calcXY(
       this.getPositionParams(),
       newTop,
@@ -609,7 +608,6 @@ export default class GridItem extends React.Component<Props, State> {
       this.props.w,
       this.props.h,
     );
-    console.log(newLayoutItem)
     const newPosition: PartialPosition = { top: newTop, left: newLeft };
     // 添加移动函数
     this.props.onDrag.call(this, i, newLayoutItem.x, newLayoutItem.y, {
