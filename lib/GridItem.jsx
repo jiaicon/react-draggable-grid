@@ -577,14 +577,46 @@ export default class GridItem extends React.Component<Props, State> {
    */
   onResizeHandler(
     e: Event,
-    { node, size }: { node: HTMLElement, size: Position },
+    { node, size, handle }: { node: HTMLElement, size: Position },
     handlerName: string
   ): void {
     const handler = this.props[handlerName];
     if (!handler) return;
     const { cols, x, y, i, maxH, minH } = this.props;
     let { minW, maxW } = this.props;
-
+    const oldResize = calcGridItemPosition(
+      this.getPositionParams(),
+      x,
+      y,
+      this.props.w,
+      this.props.h,
+    );
+    let newLeft = oldResize.left;
+    let newTop = oldResize.top;
+    const deltaHeight = size.height - oldResize.height;
+    const deltaWidth = size.width - oldResize.width;
+    if (handle[0] === 'n') {
+      newTop -= deltaHeight;
+    }
+    if (handle[handle.length - 1] === 'w') {
+      newLeft -= deltaWidth;
+    }
+    console.log(newLeft, newTop)
+    const newLayoutItem = calcXY(
+      this.getPositionParams(),
+      newTop,
+      newLeft,
+      this.props.w,
+      this.props.h,
+    );
+    console.log(newLayoutItem)
+    const newPosition: PartialPosition = { top: newTop, left: newLeft };
+    // 添加移动函数
+    this.props.onDrag.call(this, i, newLayoutItem.x, newLayoutItem.y, {
+      e,
+      node,
+      newPosition,
+    });
     // Get new XY
     let { w, h } = calcWH(
       this.getPositionParams(),

@@ -111,6 +111,8 @@ export default class ShowcaseLayout extends React.Component<Props, State> {
           onBreakpointChange={this.onBreakpointChange}
           onLayoutChange={this.onLayoutChange}
           onDrop={this.onDrop}
+          allowOverlap={true}
+          resizeHandles={['sw', 'se', 'nw', 'ne', 'w', 'e', 'n', 's']}
           // WidthProvider option
           measureBeforeMount={false}
           // I like to have it animate on mount. If you don't, delete `useCSSTransforms` (it's default `true`)
