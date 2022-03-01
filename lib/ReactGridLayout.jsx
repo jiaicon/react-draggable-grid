@@ -2,11 +2,11 @@
 import * as React from "react";
 
 import isEqual from "lodash.isequal";
-import { cloneDeep } from "lodash";
 import clsx from "clsx";
 import {
   bottom,
   childrenEqual,
+  cloneLayout,
   cloneLayoutItem,
   compact,
   compactType,
@@ -253,7 +253,7 @@ export default class ReactGridLayout extends React.Component<Props, State> {
 
     this.setState({
       oldDragItem: cloneLayoutItem(l),
-      oldLayout: cloneDeep(layout),
+      oldLayout: cloneLayout(layout),
     });
 
     return this.props.onDragStart(layout, l, l, null, e, node);
@@ -386,7 +386,7 @@ export default class ReactGridLayout extends React.Component<Props, State> {
 
     this.setState({
       oldResizeItem: cloneLayoutItem(l),
-      oldLayout: this.state.layout
+      oldLayout: cloneLayout(this.state.layout),
     });
 
     this.props.onResizeStart(layout, l, l, null, e, node);
