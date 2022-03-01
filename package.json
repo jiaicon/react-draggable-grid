@@ -6,7 +6,7 @@
   "scripts": {
     "lint": "make lint",
     "test": "make test",
-    "build": "make build",
+    "build": "npx babel --out-dir ./build ./lib ./dist/react-grid-layout.min.js",
     "build-example": "make build-example",
     "view-example": "make view-example",
     "dev": "make dev",
