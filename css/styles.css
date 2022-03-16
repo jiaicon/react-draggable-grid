@@ -8,7 +8,7 @@
 }
 .react-grid-item img {
   pointer-events: none;
-  user-select: none;  
+  user-select: none;
 }
 .react-grid-item.cssTransforms {
   transition-property: transform;
@@ -38,6 +38,7 @@
   -ms-user-select: none;
   -o-user-select: none;
   user-select: none;
+  pointer-events: none;
 }
 
 .react-grid-item > .react-resizable-handle {

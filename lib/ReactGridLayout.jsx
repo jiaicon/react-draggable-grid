@@ -14,14 +14,18 @@ import {
   getAllCollisions,
   getLayoutItem,
   moveElement,
+  recurrenceMoveEle,
+  recurrenceResizeEle,
   noop,
   synchronizeLayoutWithChildren,
-  withLayoutItem
+  withLayoutItem,
+  clacBox
 } from "./utils";
 
 import { calcXY } from "./calculateUtils";
 
 import GridItem from "./GridItem";
+import ResizeItem from "./ResizeItem";
 import ReactGridLayoutPropTypes from "./ReactGridLayoutPropTypes";
 import type {
   ChildrenArray as ReactChildrenArray,
@@ -151,11 +155,9 @@ export default class ReactGridLayout extends React.Component<Props, State> {
     prevState: State
   ): $Shape<State> | null {
     let newLayoutBase;
-
     if (prevState.activeDrag) {
       return null;
     }
-
     // Legacy support for compactType
     // Allow parent to set layout directly.
     if (
@@ -169,7 +171,6 @@ export default class ReactGridLayout extends React.Component<Props, State> {
       // what is in props.
       newLayoutBase = prevState.layout;
     }
-
     // We need to regenerate the layout.
     if (newLayoutBase) {
       const newLayout = synchronizeLayoutWithChildren(
@@ -275,7 +276,7 @@ export default class ReactGridLayout extends React.Component<Props, State> {
   ) => {
     const { oldDragItem } = this.state;
     let { layout } = this.state;
-    const { cols, allowOverlap, preventCollision } = this.props;
+    const { cols, allowOverlap, preventCollision, active } = this.props;
     const l = getLayoutItem(layout, i);
     if (!l) return;
 
@@ -291,18 +292,29 @@ export default class ReactGridLayout extends React.Component<Props, State> {
 
     // Move the element to the dragged location.
     const isUserAction = true;
-    layout = moveElement(
+    // layout = moveElement(
+    //   layout,
+    //   l,
+    //   x,
+    //   y,
+    //   isUserAction,
+    //   preventCollision,
+    //   compactType(this.props),
+    //   cols,
+    //   allowOverlap
+    // );
+    // 递归移动active里的每一项
+    layout = recurrenceMoveEle(
+      active,
       layout,
-      l,
-      x,
-      y,
+      x-l.x,
+      y-l.y,
       isUserAction,
       preventCollision,
       compactType(this.props),
       cols,
       allowOverlap
-    );
-
+    )
     this.props.onDrag(layout, oldDragItem, l, placeholder, e, node);
 
     this.setState({
@@ -331,24 +343,35 @@ export default class ReactGridLayout extends React.Component<Props, State> {
 
     const { oldDragItem } = this.state;
     let { layout } = this.state;
-    const { cols, preventCollision, allowOverlap } = this.props;
+    const { cols, preventCollision, allowOverlap, active } = this.props;
     const l = getLayoutItem(layout, i);
     if (!l) return;
 
     // Move the element here
     const isUserAction = true;
-    layout = moveElement(
+    // layout = moveElement(
+    //   layout,
+    //   l,
+    //   x,
+    //   y,
+    //   isUserAction,
+    //   preventCollision,
+    //   compactType(this.props),
+    //   cols,
+    //   allowOverlap
+    // );
+    // 递归移动active里的每一项
+    layout = recurrenceMoveEle(
+      active,
       layout,
-      l,
-      x,
-      y,
+      x-l.x,
+      y-l.y,
       isUserAction,
       preventCollision,
       compactType(this.props),
       cols,
       allowOverlap
-    );
-
+    )
     this.props.onDragStop(layout, oldDragItem, l, null, e, node);
 
     // Set state
@@ -399,49 +422,32 @@ export default class ReactGridLayout extends React.Component<Props, State> {
     { e, node }
   ) => {
     const { layout, oldResizeItem } = this.state;
-    const { cols, preventCollision, allowOverlap } = this.props;
+    const { cols, preventCollision, allowOverlap, active } = this.props;
+    const resizes = layout.filter(item => active.includes(item.i));
 
-    const [newLayout, l] = withLayoutItem(layout, i, l => {
-      // Something like quad tree should be used
-      // to find collisions faster
-      let hasCollisions;
-      if (preventCollision && !allowOverlap) {
-        const collisions = getAllCollisions(layout, { ...l, w, h }).filter(
-          layoutItem => layoutItem.i !== l.i
-        );
-        hasCollisions = collisions.length > 0;
+    // 合并resizes，只需要一层结构，多选时包裹子集
+    if (!resizes?.length) {
+      return;
+    }
+    const l = clacBox(resizes);
 
-        // If we're colliding, we need adjust the placeholder.
-        if (hasCollisions) {
-          // adjust w && h to maximum allowed space
-          let leastX = Infinity,
-            leastY = Infinity;
-          collisions.forEach(layoutItem => {
-            if (layoutItem.x > l.x) leastX = Math.min(leastX, layoutItem.x);
-            if (layoutItem.y > l.y) leastY = Math.min(leastY, layoutItem.y);
-          });
-
-          if (Number.isFinite(leastX)) l.w = leastX - l.x;
-          if (Number.isFinite(leastY)) l.h = leastY - l.y;
-        }
-      }
-
-      if (!hasCollisions) {
-        // Set new width and height.
-        l.w = w;
-        l.h = h;
-      }
-
-      return l;
-    });
-
-    // Shouldn't ever happen, but typechecking makes it necessary
     if (!l) return;
+    const newLayout = recurrenceResizeEle(
+      active,
+      layout,
+      w-l.w,
+      h-l.h,
+      true,
+      preventCollision,
+      compactType(this.props),
+      cols,
+      allowOverlap
+    )
 
     // Create placeholder element (display only)
     const placeholder = {
-      w: l.w,
-      h: l.h,
+      w: w,
+      h: h,
       x: l.x,
       y: l.y,
       static: true,
@@ -466,8 +472,14 @@ export default class ReactGridLayout extends React.Component<Props, State> {
     { e, node }
   ) => {
     const { layout, oldResizeItem } = this.state;
-    const { cols, allowOverlap } = this.props;
-    const l = getLayoutItem(layout, i);
+    const { cols, allowOverlap, active } = this.props;
+    const resizes = layout.filter(item => active.includes(item.i));
+    // 合并resizes，只需要一层结构，多选时包裹子集
+    if (!resizes?.length) {
+      return;
+    }
+    const l = clacBox(resizes);
+    if (!l) return;
 
     this.props.onResizeStop(layout, oldResizeItem, l, null, e, node);
 
@@ -576,7 +588,6 @@ export default class ReactGridLayout extends React.Component<Props, State> {
 
     // isBounded set on child if set on parent, and child is not explicitly false
     const bounded = draggable && isBounded && l.isBounded !== false;
-
     return (
       <GridItem
         containerWidth={width}
@@ -590,11 +601,7 @@ export default class ReactGridLayout extends React.Component<Props, State> {
         onDragStop={this.onDragStop}
         onDragStart={this.onDragStart}
         onDrag={this.onDrag}
-        onResizeStart={this.onResizeStart}
-        onResize={this.onResize}
-        onResizeStop={this.onResizeStop}
         isDraggable={draggable}
-        isResizable={resizable}
         isBounded={bounded}
         useCSSTransforms={useCSSTransforms && mounted}
         usePercentages={!mounted}
@@ -610,8 +617,6 @@ export default class ReactGridLayout extends React.Component<Props, State> {
         maxW={l.maxW}
         static={l.static}
         droppingPosition={isDroppingItem ? droppingPosition : undefined}
-        resizeHandles={resizeHandlesOptions}
-        resizeHandle={resizeHandle}
       >
         {child}
       </GridItem>
@@ -759,7 +764,22 @@ export default class ReactGridLayout extends React.Component<Props, State> {
   };
 
   render(): React.Element<"div"> {
-    const { className, style, isDroppable, innerRef } = this.props;
+    const { className, style, isDroppable, innerRef, active } = this.props;
+    const { layout=[] } = this.state;
+    const resizes = layout.filter(item => active.includes(item.i));
+    const resizeItems = [];
+    // 合并resizes，只需要一层结构
+    if (resizes.length) {
+      const { x, y, w, h } = clacBox(resizes);
+      resizeItems.push({
+        i: 'qweqweqweqw',
+        x,
+        y,
+        w,
+        h,
+        moved: true,
+      })
+    }
 
     const mergedClassName = clsx(layoutClassName, className);
     const mergedStyle = {
@@ -768,23 +788,99 @@ export default class ReactGridLayout extends React.Component<Props, State> {
     };
 
     return (
-      <div
-        ref={innerRef}
-        className={mergedClassName}
-        style={mergedStyle}
-        onDrop={isDroppable ? this.onDrop : noop}
-        onDragLeave={isDroppable ? this.onDragLeave : noop}
-        onDragEnter={isDroppable ? this.onDragEnter : noop}
-        onDragOver={isDroppable ? this.onDragOver : noop}
-      >
-        {React.Children.map(this.props.children, child =>
-          this.processGridItem(child)
-        )}
-        {isDroppable &&
-          this.state.droppingDOMNode &&
-          this.processGridItem(this.state.droppingDOMNode, true)}
-        {this.placeholder()}
-      </div>
+      <React.Fragment>
+        <div
+          ref={innerRef}
+          className={mergedClassName}
+          style={mergedStyle}
+          onDrop={isDroppable ? this.onDrop : noop}
+          onDragLeave={isDroppable ? this.onDragLeave : noop}
+          onDragEnter={isDroppable ? this.onDragEnter : noop}
+          onDragOver={isDroppable ? this.onDragOver : noop}
+        >
+          {React.Children.map(this.props.children, child =>
+            this.processGridItem(child)
+          )}
+          {isDroppable &&
+            this.state.droppingDOMNode &&
+            this.processGridItem(this.state.droppingDOMNode, true)}
+          {this.placeholder()}
+        </div>
+        {
+          resizeItems.map(item => {
+            const l = item;
+            const {
+              width,
+              cols,
+              margin,
+              containerPadding,
+              rowHeight,
+              maxRows,
+              isDraggable,
+              isResizable,
+              isBounded,
+              useCSSTransforms,
+              transformScale,
+              draggableCancel,
+              draggableHandle,
+              resizeHandles,
+              resizeHandle
+            } = this.props;
+            const { mounted } = this.state;
+
+            // Determine user manipulations possible.
+            // If an item is static, it can't be manipulated by default.
+            // Any properties defined directly on the grid item will take precedence.
+            const draggable =
+              typeof l.isDraggable === "boolean"
+                ? l.isDraggable
+                : !l.static && isDraggable;
+            const resizable =
+              typeof l.isResizable === "boolean"
+                ? l.isResizable
+                : !l.static && isResizable;
+            const resizeHandlesOptions = l.resizeHandles || resizeHandles;
+
+            // isBounded set on child if set on parent, and child is not explicitly false
+            const bounded = draggable && isBounded && l.isBounded !== false;
+            return (
+              <ResizeItem
+                key={item.i}
+                containerWidth={width}
+                cols={cols}
+                margin={margin}
+                containerPadding={containerPadding || margin}
+                maxRows={maxRows}
+                rowHeight={rowHeight}
+                cancel={draggableCancel}
+                handle={draggableHandle}
+                onResizeStart={this.onResizeStart}
+                onResize={this.onResize}
+                onResizeStop={this.onResizeStop}
+                isResizable={resizable}
+                isBounded={bounded}
+                useCSSTransforms={useCSSTransforms && mounted}
+                usePercentages={!mounted}
+                transformScale={transformScale}
+                w={l.w}
+                h={l.h}
+                x={l.x}
+                y={l.y}
+                i={l.i}
+                minH={l.minH}
+                minW={l.minW}
+                maxH={l.maxH}
+                maxW={l.maxW}
+                static={l.static}
+                resizeHandles={resizeHandlesOptions}
+                resizeHandle={resizeHandle}
+              >
+                <div />
+              </ResizeItem>
+            )
+          })
+        }
+      </React.Fragment>
     );
   }
 }

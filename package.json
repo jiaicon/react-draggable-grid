@@ -10,8 +10,8 @@
     "build-example": "make build-example",
     "view-example": "make view-example",
     "dev": "make dev",
-    "dev-min": "webpack-dev-server --config webpack-dev-server.config.js",
-    "build-min": "npx babel --out-dir ./build ./lib",
+    "dev-mine": "webpack-dev-server --config webpack-dev-server.config.js",
+    "build-mine": "npx babel --out-dir ./build ./lib",
     "prepublishOnly": "make build",
     "validate": "npm ls",
     "flow": "flow"
@@ -41,7 +41,7 @@
     "clsx": "^1.1.1",
     "lodash.isequal": "^4.0.0",
     "prop-types": "^15.0.0",
-    "react-draggable": "^4.0.0",
+    "react-draggable": "^4.4.4",
     "react-resizable": "^3.0.4"
   },
   "devDependencies": {
