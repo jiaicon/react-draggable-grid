@@ -12,7 +12,6 @@
     "dev": "make dev",
     "dev-mine": "webpack-dev-server --config webpack-dev-server.config.js",
     "build-mine": "npx babel --out-dir ./build ./lib",
-    "prepublishOnly": "make build",
     "validate": "npm ls",
     "flow": "flow"
   },
