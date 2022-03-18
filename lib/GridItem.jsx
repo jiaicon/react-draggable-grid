@@ -9,33 +9,25 @@ import {
   calcGridItemWHPx,
   calcGridColWidth,
   calcXY,
-  calcWH,
   clamp
 } from "./calculateUtils";
-import {
-  resizeHandleAxesType,
-  resizeHandleType
-} from "./ReactGridLayoutPropTypes";
 import clsx from "clsx";
 import type { Element as ReactElement, Node as ReactNode } from "react";
 
 import type {
   ReactDraggableCallbackData,
   GridDragEvent,
-  GridResizeEvent,
   DroppingPosition,
   Position
 } from "./utils";
 
 import type { PositionParams } from "./calculateUtils";
 import type {
-  ResizeHandleAxis,
-  ResizeHandle,
   ReactRef
 } from "./ReactGridLayoutPropTypes";
 
 type PartialPosition = { top: number, left: number };
-type GridItemCallback<Data: GridDragEvent | GridResizeEvent> = (
+type GridItemCallback<Data: GridDragEvent> = (
   i: string,
   w: number,
   h: number,
@@ -57,7 +49,6 @@ type Props = {
   rowHeight: number,
   maxRows: number,
   isDraggable: boolean,
-  isResizable: boolean,
   isBounded: boolean,
   static?: boolean,
   useCSSTransforms?: boolean,
@@ -82,15 +73,9 @@ type Props = {
   maxH: number,
   i: string,
 
-  resizeHandles?: ResizeHandleAxis[],
-  resizeHandle?: ResizeHandle,
-
   onDrag?: GridItemCallback<GridDragEvent>,
   onDragStart?: GridItemCallback<GridDragEvent>,
   onDragStop?: GridItemCallback<GridDragEvent>,
-  onResize?: GridItemCallback<GridResizeEvent>,
-  onResizeStart?: GridItemCallback<GridResizeEvent>,
-  onResizeStop?: GridItemCallback<GridResizeEvent>
 };
 
 type DefaultProps = {
@@ -161,21 +146,13 @@ export default class GridItem extends React.Component<Props, State> {
     // ID is nice to have for callbacks
     i: PropTypes.string.isRequired,
 
-    // Resize handle options
-    resizeHandles: resizeHandleAxesType,
-    resizeHandle: resizeHandleType,
-
     // Functions
     onDragStop: PropTypes.func,
     onDragStart: PropTypes.func,
     onDrag: PropTypes.func,
-    onResizeStop: PropTypes.func,
-    onResizeStart: PropTypes.func,
-    onResize: PropTypes.func,
 
     // Flags
     isDraggable: PropTypes.bool.isRequired,
-    isResizable: PropTypes.bool.isRequired,
     isBounded: PropTypes.bool.isRequired,
     static: PropTypes.bool,
 
@@ -360,65 +337,6 @@ export default class GridItem extends React.Component<Props, State> {
   }
 
   /**
-   * Mix a Resizable instance into a child.
-   * @param  {Element} child    Child element.
-   * @param  {Object} position  Position object (pixel values)
-   * @return {Element}          Child wrapped in Resizable.
-   */
-  mixinResizable(
-    child: ReactElement<any>,
-    position: Position,
-    isResizable: boolean
-  ): ReactElement<any> {
-    const {
-      cols,
-      x,
-      minW,
-      minH,
-      maxW,
-      maxH,
-      transformScale,
-      resizeHandles,
-      resizeHandle
-    } = this.props;
-    const positionParams = this.getPositionParams();
-
-    // This is the max possible width - doesn't go to infinity because of the width of the window
-    const maxWidth = calcGridItemPosition(positionParams, 0, 0, cols - x, 0)
-      .width;
-
-    // Calculate min/max constraints using our min & maxes
-    const mins = calcGridItemPosition(positionParams, 0, 0, minW, minH);
-    const maxes = calcGridItemPosition(positionParams, 0, 0, maxW, maxH);
-    const minConstraints = [mins.width, mins.height];
-    const maxConstraints = [
-      Math.min(maxes.width, maxWidth),
-      Math.min(maxes.height, Infinity)
-    ];
-    return (
-      <Resizable
-        // These are opts for the resize handle itself
-        draggableOpts={{
-          disabled: !isResizable,
-        }}
-        className={isResizable ? undefined : "react-resizable-hide"}
-        width={position.width}
-        height={position.height}
-        minConstraints={minConstraints}
-        maxConstraints={maxConstraints}
-        onResizeStop={this.onResizeStop}
-        onResizeStart={this.onResizeStart}
-        onResize={this.onResize}
-        transformScale={transformScale}
-        resizeHandles={resizeHandles}
-        handle={resizeHandle}
-      >
-        {child}
-      </Resizable>
-    );
-  }
-
-  /**
    * onDragStart event handler
    * @param  {Event}  e             event data
    * @param  {Object} callbackData  an object with node, delta and position information
@@ -540,114 +458,6 @@ export default class GridItem extends React.Component<Props, State> {
     });
   };
 
-  /**
-   * onResizeStop event handler
-   * @param  {Event}  e             event data
-   * @param  {Object} callbackData  an object with node and size information
-   */
-  onResizeStop: (Event, { node: HTMLElement, size: Position }) => void = (
-    e,
-    callbackData
-  ) => {
-    this.onResizeHandler(e, callbackData, "onResizeStop");
-  };
-
-  /**
-   * onResizeStart event handler
-   * @param  {Event}  e             event data
-   * @param  {Object} callbackData  an object with node and size information
-   */
-  onResizeStart: (Event, { node: HTMLElement, size: Position }) => void = (
-    e,
-    callbackData
-  ) => {
-    this.onResizeHandler(e, callbackData, "onResizeStart");
-  };
-
-  /**
-   * onResize event handler
-   * @param  {Event}  e             event data
-   * @param  {Object} callbackData  an object with node and size information
-   */
-  onResize: (Event, { node: HTMLElement, size: Position }) => void = (
-    e,
-    callbackData
-  ) => {
-    this.onResizeHandler(e, callbackData, "onResize");
-  };
-
-  /**
-   * Wrapper around drag events to provide more useful data.
-   * All drag events call the function with the given handler name,
-   * with the signature (index, x, y).
-   *
-   * @param  {String} handlerName Handler name to wrap.
-   * @return {Function}           Handler function.
-   */
-  onResizeHandler(
-    e: Event,
-    { node, size, handle }: { node: HTMLElement, size: Position },
-    handlerName: string
-  ): void {
-    const handler = this.props[handlerName];
-    if (!handler) return;
-    const { cols, x, y, i, maxH, minH } = this.props;
-    let { minW, maxW } = this.props;
-    const oldResize = calcGridItemPosition(
-      this.getPositionParams(),
-      x,
-      y,
-      this.props.w,
-      this.props.h,
-    );
-    let newLeft = oldResize.left;
-    let newTop = oldResize.top;
-    const deltaHeight = size.height - oldResize.height;
-    const deltaWidth = size.width - oldResize.width;
-    if (handle[0] === 'n') {
-      newTop -= deltaHeight;
-    }
-    if (handle[handle.length - 1] === 'w') {
-      newLeft -= deltaWidth;
-    }
-    const newLayoutItem = calcXY(
-      this.getPositionParams(),
-      newTop,
-      newLeft,
-      this.props.w,
-      this.props.h,
-    );
-    const newPosition: PartialPosition = { top: newTop, left: newLeft };
-    // 添加移动函数
-    this.props.onDrag.call(this, i, newLayoutItem.x, newLayoutItem.y, {
-      e,
-      node,
-      newPosition,
-    });
-    // Get new XY
-    let { w, h } = calcWH(
-      this.getPositionParams(),
-      size.width,
-      size.height,
-      x,
-      y
-    );
-
-    // minW should be at least 1 (TODO propTypes validation?)
-    minW = Math.max(minW, 1);
-
-    // maxW should be at most (cols - x)
-    maxW = Math.min(maxW, cols - x);
-
-    // Min/max capping
-    w = clamp(w, minW, maxW);
-    h = clamp(h, minH, maxH);
-
-    this.setState({ resizing: handlerName === "onResizeStop" ? null : size });
-
-    handler.call(this, i, w, h, { e, node, size });
-  }
-
   render(): ReactNode {
     const {
       x,
@@ -655,7 +465,6 @@ export default class GridItem extends React.Component<Props, State> {
       w,
       h,
       isDraggable,
-      isResizable,
       droppingPosition,
       useCSSTransforms
     } = this.props;
@@ -693,9 +502,6 @@ export default class GridItem extends React.Component<Props, State> {
         ...this.createStyle(pos)
       }
     });
-
-    // Resizable support. This is usually on but the user can toggle it off.
-    // newChild = this.mixinResizable(newChild, pos, isResizable);
 
     // Draggable support. This is always on, except for with placeholders.
     newChild = this.mixinDraggable(newChild, isDraggable);

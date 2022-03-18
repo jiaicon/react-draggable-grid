@@ -321,7 +321,8 @@ export default class ReactGridLayout extends React.Component<Props, State> {
       layout: allowOverlap
         ? layout
         : compact(layout, compactType(this.props), cols),
-      activeDrag: placeholder
+      activeDrag: placeholder,
+      dragging: true,
     });
   };
 
@@ -383,7 +384,8 @@ export default class ReactGridLayout extends React.Component<Props, State> {
       activeDrag: null,
       layout: newLayout,
       oldDragItem: null,
-      oldLayout: null
+      oldLayout: null,
+      dragging: false,
     });
 
     this.onLayoutMaybeChanged(newLayout, oldLayout);
@@ -765,7 +767,7 @@ export default class ReactGridLayout extends React.Component<Props, State> {
 
   render(): React.Element<"div"> {
     const { className, style, isDroppable, innerRef, active } = this.props;
-    const { layout=[] } = this.state;
+    const { layout=[], dragging } = this.state;
     const resizes = layout.filter(item => active.includes(item.i));
     const resizeItems = [];
     // 合并resizes，只需要一层结构
@@ -801,10 +803,10 @@ export default class ReactGridLayout extends React.Component<Props, State> {
           {React.Children.map(this.props.children, child =>
             this.processGridItem(child)
           )}
-          {isDroppable &&
-            this.state.droppingDOMNode &&
-            this.processGridItem(this.state.droppingDOMNode, true)}
-          {this.placeholder()}
+          {/*{isDroppable &&*/}
+          {/*  this.state.droppingDOMNode &&*/}
+          {/*  this.processGridItem(this.state.droppingDOMNode, true)}*/}
+          {/*{this.placeholder()}*/}
         </div>
         {
           resizeItems.map(item => {
@@ -873,7 +875,7 @@ export default class ReactGridLayout extends React.Component<Props, State> {
                 maxW={l.maxW}
                 static={l.static}
                 resizeHandles={resizeHandlesOptions}
-                resizeHandle={resizeHandle}
+                resizeHandle={dragging ? null : resizeHandle}
               >
                 <div />
               </ResizeItem>
