@@ -437,8 +437,9 @@ export default class ReactGridLayout extends React.Component<Props, State> {
     const newLayout = recurrenceResizeEle(
       active,
       layout,
-      w/l.w,
-      h/l.h,
+      l,
+      w,
+      h,
       true,
       preventCollision,
       compactType(this.props),
