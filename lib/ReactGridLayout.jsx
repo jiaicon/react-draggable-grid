@@ -407,11 +407,16 @@ export default class ReactGridLayout extends React.Component<Props, State> {
   ) => {
     const { layout } = this.state;
     const l = getLayoutItem(layout, i);
-    if (!l) return;
-
+    if (!l) {
+      this.setState({
+        oldResizeItem: null,
+        oldLayout: {}, // 设置为null时，不会触发onLayoutMaybeChanged
+      })
+      return;
+    }
     this.setState({
       oldResizeItem: cloneLayoutItem(l),
-      oldLayout: this.state.layout
+      oldLayout: cloneDeep(layout),
     });
 
     this.props.onResizeStart(layout, l, l, null, e, node);
@@ -497,7 +502,6 @@ export default class ReactGridLayout extends React.Component<Props, State> {
       oldResizeItem: null,
       oldLayout: null
     });
-
     this.onLayoutMaybeChanged(newLayout, oldLayout);
   };
 
