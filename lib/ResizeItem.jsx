@@ -324,8 +324,8 @@ export default class GridItem extends React.Component<Props, State> {
         className={isResizable ? undefined : "react-resizable-hide"}
         width={position.width}
         height={position.height}
-        minConstraints={minConstraints}
-        maxConstraints={maxConstraints}
+        // minConstraints={minConstraints}
+        // maxConstraints={maxConstraints}
         onResizeStop={this.onResizeStop}
         onResizeStart={this.onResizeStart}
         onResize={this.onResize}
@@ -393,38 +393,6 @@ export default class GridItem extends React.Component<Props, State> {
     if (!handler) return;
     const { cols, x, y, i, maxH, minH } = this.props;
     let { minW, maxW } = this.props;
-    // const oldResize = calcGridItemPosition(
-    //   this.getPositionParams(),
-    //   x,
-    //   y,
-    //   this.props.w,
-    //   this.props.h,
-    // );
-    // let newLeft = oldResize.left;
-    // let newTop = oldResize.top;
-    // const deltaHeight = size.height - oldResize.height;
-    // const deltaWidth = size.width - oldResize.width;
-    // if (handle[0] === 'n') {
-    //   newTop -= deltaHeight;
-    // }
-    // if (handle[handle.length - 1] === 'w') {
-    //   newLeft -= deltaWidth;
-    // }
-    // const newLayoutItem = calcXY(
-    //   this.getPositionParams(),
-    //   newTop,
-    //   newLeft,
-    //   this.props.w,
-    //   this.props.h,
-    // );
-    // const newPosition: PartialPosition = { top: newTop, left: newLeft };
-    // 添加移动函数
-    // this.props.onDrag.call(this, i, newLayoutItem.x, newLayoutItem.y, {
-    //   e,
-    //   node,
-    //   newPosition,
-    // });
-    // Get new XY
     let { w, h } = calcWH(
       this.getPositionParams(),
       size.width,
@@ -439,8 +407,8 @@ export default class GridItem extends React.Component<Props, State> {
     maxW = Math.min(maxW, cols - x);
 
     // Min/max capping
-    w = clamp(w, minW, maxW);
-    h = clamp(h, minH, maxH);
+    // w = clamp(w, minW, maxW);
+    // h = clamp(h, minH, maxH);
 
     this.setState({ resizing: handlerName === "onResizeStop" ? null : size });
 
