@@ -147,7 +147,7 @@ export default class ReactGridLayout extends React.Component<Props, State> {
     this.setState({ mounted: true });
     // Possibly call back with layout on mount. This should be done after correcting the layout width
     // to ensure we don't rerender with the wrong width.
-    this.onLayoutMaybeChanged(this.state.layout, this.props.layout);
+    // this.onLayoutMaybeChanged(this.state.layout, this.props.layout);
   }
 
   static getDerivedStateFromProps(
@@ -214,7 +214,7 @@ export default class ReactGridLayout extends React.Component<Props, State> {
       const newLayout = this.state.layout;
       const oldLayout = prevState.layout;
 
-      this.onLayoutMaybeChanged(newLayout, oldLayout);
+      // this.onLayoutMaybeChanged(newLayout, oldLayout);
     }
   }
 
