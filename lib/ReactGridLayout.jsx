@@ -431,7 +431,7 @@ export default class ReactGridLayout extends React.Component<Props, State> {
     { e, node, handle }
   ) => {
     const { layout, oldResizeItem } = this.state;
-    const { cols, preventCollision, allowOverlap, active, transformScale } = this.props;
+    const { cols, preventCollision, allowOverlap, active } = this.props;
     const resizes = layout.filter(item => active.includes(item.i));
 
     // 合并resizes，只需要一层结构，多选时包裹子集
