@@ -442,8 +442,12 @@ export default class ReactGridLayout extends React.Component<Props, State> {
     if (!l) return;
     let delX = 0, delY = 0;
     if (handle.includes('n') || handle.includes('w')) {
-      delX = l.w - w;
-      delY = l.h - h;
+      if (handle !== 'ne') {
+        delX = l.w - w;
+      }
+      if (handle !== 'sw') {
+        delY = l.h - h;
+      }
     }
     const newLayout = recurrenceResizeEle(
       active,
