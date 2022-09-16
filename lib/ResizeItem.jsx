@@ -295,37 +295,15 @@ export default class GridItem extends React.Component<Props, State> {
     isResizable: boolean
   ): ReactElement<any> {
     const {
-      cols,
-      x,
-      minW,
-      minH,
-      maxW,
-      maxH,
       transformScale,
       resizeHandles,
       resizeHandle
     } = this.props;
-    const positionParams = this.getPositionParams();
-
-    // This is the max possible width - doesn't go to infinity because of the width of the window
-    const maxWidth = calcGridItemPosition(positionParams, 0, 0, cols - x, 0)
-      .width;
-
-    // Calculate min/max constraints using our min & maxes
-    const mins = calcGridItemPosition(positionParams, 0, 0, minW, minH);
-    const maxes = calcGridItemPosition(positionParams, 0, 0, maxW, maxH);
-    const minConstraints = [mins.width, mins.height];
-    const maxConstraints = [
-      Math.min(maxes.width, maxWidth),
-      Math.min(maxes.height, Infinity)
-    ];
     return (
       <Resizable
         className={isResizable ? undefined : "react-resizable-hide"}
         width={position.width}
         height={position.height}
-        // minConstraints={minConstraints}
-        // maxConstraints={maxConstraints}
         onResizeStop={this.onResizeStop}
         onResizeStart={this.onResizeStart}
         onResize={this.onResize}
@@ -391,8 +369,7 @@ export default class GridItem extends React.Component<Props, State> {
     e.preventDefault();
     const handler = this.props[handlerName];
     if (!handler) return;
-    const { cols, x, y, i, maxH, minH } = this.props;
-    let { minW, maxW } = this.props;
+    const { x, y, i } = this.props;
     let { w, h } = calcWH(
       this.getPositionParams(),
       size.width,
@@ -400,19 +377,9 @@ export default class GridItem extends React.Component<Props, State> {
       x,
       y
     );
-    // minW should be at least 1 (TODO propTypes validation?)
-    minW = Math.max(minW, 1);
-
-    // maxW should be at most (cols - x)
-    maxW = Math.min(maxW, cols - x);
-
-    // Min/max capping
-    // w = clamp(w, minW, maxW);
-    // h = clamp(h, minH, maxH);
 
     this.setState({ resizing: handlerName === "onResizeStop" ? null : size });
-
-    handler.call(this, i, w, h, { e, node, size });
+    handler.call(this, i, w, h, { e, node, size, handle });
   }
 
   render(): ReactNode {
@@ -421,9 +388,7 @@ export default class GridItem extends React.Component<Props, State> {
       y,
       w,
       h,
-      isDraggable,
       isResizable,
-      droppingPosition,
       useCSSTransforms
     } = this.props;
 

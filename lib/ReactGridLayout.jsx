@@ -309,8 +309,8 @@ export default class ReactGridLayout extends React.Component<Props, State> {
     layout = recurrenceMoveEle(
       active,
       layout,
-      x-l.x,
-      y-l.y,
+      x - l.x,
+      y - l.y,
       isUserAction,
       preventCollision,
       compactType(this.props),
@@ -367,8 +367,8 @@ export default class ReactGridLayout extends React.Component<Props, State> {
     layout = recurrenceMoveEle(
       active,
       layout,
-      x-l.x,
-      y-l.y,
+      x - l.x,
+      y - l.y,
       isUserAction,
       preventCollision,
       compactType(this.props),
@@ -428,10 +428,10 @@ export default class ReactGridLayout extends React.Component<Props, State> {
     i,
     w,
     h,
-    { e, node }
+    { e, node, handle }
   ) => {
     const { layout, oldResizeItem } = this.state;
-    const { cols, preventCollision, allowOverlap, active } = this.props;
+    const { cols, preventCollision, allowOverlap, active, transformScale } = this.props;
     const resizes = layout.filter(item => active.includes(item.i));
 
     // 合并resizes，只需要一层结构，多选时包裹子集
@@ -439,19 +439,24 @@ export default class ReactGridLayout extends React.Component<Props, State> {
       return;
     }
     const l = clacBox(resizes);
-
     if (!l) return;
+    let delX = 0, delY = 0;
+    if (handle.includes('n') || handle.includes('w')) {
+      delX = l.w - w;
+      delY = l.h - h;
+    }
     const newLayout = recurrenceResizeEle(
       active,
       layout,
       l,
       w,
       h,
+      delX, delY,
       true,
       preventCollision,
       compactType(this.props),
       cols,
-      allowOverlap
+      allowOverlap,
     )
 
     // Create placeholder element (display only)
@@ -721,175 +726,175 @@ export default class ReactGridLayout extends React.Component<Props, State> {
     }
   };
 
-  removeDroppingPlaceholder: () => void = () => {
-    const { droppingItem, cols } = this.props;
-    const { layout } = this.state;
+removeDroppingPlaceholder: () => void = () => {
+  const { droppingItem, cols } = this.props;
+  const { layout } = this.state;
 
-    const newLayout = compact(
-      layout.filter(l => l.i !== droppingItem.i),
-      compactType(this.props),
-      cols
-    );
+  const newLayout = compact(
+    layout.filter(l => l.i !== droppingItem.i),
+    compactType(this.props),
+    cols
+  );
 
-    this.setState({
-      layout: newLayout,
-      droppingDOMNode: null,
-      activeDrag: null,
-      droppingPosition: undefined
-    });
-  };
+  this.setState({
+    layout: newLayout,
+    droppingDOMNode: null,
+    activeDrag: null,
+    droppingPosition: undefined
+  });
+};
 
-  onDragLeave: EventHandler = e => {
-    e.preventDefault(); // Prevent any browser native action
-    this.dragEnterCounter--;
+onDragLeave: EventHandler = e => {
+  e.preventDefault(); // Prevent any browser native action
+  this.dragEnterCounter--;
 
-    // onDragLeave can be triggered on each layout's child.
-    // But we know that count of dragEnter and dragLeave events
-    // will be balanced after leaving the layout's container
-    // so we can increase and decrease count of dragEnter and
-    // when it'll be equal to 0 we'll remove the placeholder
-    if (this.dragEnterCounter === 0) {
-      this.removeDroppingPlaceholder();
-    }
-  };
-
-  onDragEnter: EventHandler = e => {
-    e.preventDefault(); // Prevent any browser native action
-    this.dragEnterCounter++;
-  };
-
-  onDrop: EventHandler = (e: Event) => {
-    e.preventDefault(); // Prevent any browser native action
-    const { droppingItem } = this.props;
-    const { layout } = this.state;
-    const item = layout.find(l => l.i === droppingItem.i);
-
-    // reset dragEnter counter on drop
-    this.dragEnterCounter = 0;
-
+  // onDragLeave can be triggered on each layout's child.
+  // But we know that count of dragEnter and dragLeave events
+  // will be balanced after leaving the layout's container
+  // so we can increase and decrease count of dragEnter and
+  // when it'll be equal to 0 we'll remove the placeholder
+  if (this.dragEnterCounter === 0) {
     this.removeDroppingPlaceholder();
+  }
+};
 
-    this.props.onDrop(layout, item, e);
-  };
+onDragEnter: EventHandler = e => {
+  e.preventDefault(); // Prevent any browser native action
+  this.dragEnterCounter++;
+};
 
-  render(): React.Element<"div"> {
-    const { className, style, isDroppable, innerRef, active } = this.props;
-    const { layout=[], dragging } = this.state;
-    const resizes = layout.filter(item => active.includes(item.i));
-    const resizeItems = [];
-    // 合并resizes，只需要一层结构
-    if (resizes.length) {
-      const { x, y, w, h } = clacBox(resizes);
-      resizeItems.push({
-        i: 'qweqweqweqw',
-        x,
-        y,
-        w,
-        h,
-        moved: true,
+onDrop: EventHandler = (e: Event) => {
+  e.preventDefault(); // Prevent any browser native action
+  const { droppingItem } = this.props;
+  const { layout } = this.state;
+  const item = layout.find(l => l.i === droppingItem.i);
+
+  // reset dragEnter counter on drop
+  this.dragEnterCounter = 0;
+
+  this.removeDroppingPlaceholder();
+
+  this.props.onDrop(layout, item, e);
+};
+
+render(): React.Element < "div" > {
+  const { className, style, isDroppable, innerRef, active } = this.props;
+  const { layout=[], dragging } = this.state;
+  const resizes = layout.filter(item => active.includes(item.i));
+  const resizeItems = [];
+  // 合并resizes，只需要一层结构
+  if(resizes.length) {
+  const { x, y, w, h } = clacBox(resizes);
+  resizeItems.push({
+    i: 'qweqweqweqw',
+    x,
+    y,
+    w,
+    h,
+    moved: true,
+  })
+}
+
+const mergedClassName = clsx(layoutClassName, className);
+const mergedStyle = {
+  height: this.containerHeight(),
+  ...style
+};
+
+return (
+  <React.Fragment>
+    <div
+      ref={innerRef}
+      className={mergedClassName}
+      style={mergedStyle}
+      onDrop={isDroppable ? this.onDrop : noop}
+      onDragLeave={isDroppable ? this.onDragLeave : noop}
+      onDragEnter={isDroppable ? this.onDragEnter : noop}
+      onDragOver={isDroppable ? this.onDragOver : noop}
+    >
+      {React.Children.map(this.props.children, child =>
+        this.processGridItem(child)
+      )}
+      {/*{isDroppable &&*/}
+      {/*  this.state.droppingDOMNode &&*/}
+      {/*  this.processGridItem(this.state.droppingDOMNode, true)}*/}
+      {/*{this.placeholder()}*/}
+    </div>
+    {
+      resizeItems.map(item => {
+        const l = item;
+        const {
+          width,
+          cols,
+          margin,
+          containerPadding,
+          rowHeight,
+          maxRows,
+          isDraggable,
+          isResizable,
+          isBounded,
+          useCSSTransforms,
+          transformScale,
+          draggableCancel,
+          draggableHandle,
+          resizeHandles,
+          resizeHandle
+        } = this.props;
+        const { mounted } = this.state;
+
+        // Determine user manipulations possible.
+        // If an item is static, it can't be manipulated by default.
+        // Any properties defined directly on the grid item will take precedence.
+        const draggable =
+          typeof l.isDraggable === "boolean"
+            ? l.isDraggable
+            : !l.static && isDraggable;
+        const resizable =
+          typeof l.isResizable === "boolean"
+            ? l.isResizable
+            : !l.static && isResizable;
+        const resizeHandlesOptions = l.resizeHandles || resizeHandles;
+
+        // isBounded set on child if set on parent, and child is not explicitly false
+        const bounded = draggable && isBounded && l.isBounded !== false;
+        return (
+          <ResizeItem
+            key={item.i}
+            containerWidth={width}
+            cols={cols}
+            margin={margin}
+            containerPadding={containerPadding || margin}
+            maxRows={maxRows}
+            rowHeight={rowHeight}
+            cancel={draggableCancel}
+            handle={draggableHandle}
+            onResizeStart={this.onResizeStart}
+            onResize={this.onResize}
+            onResizeStop={this.onResizeStop}
+            isResizable={resizable}
+            isBounded={bounded}
+            useCSSTransforms={useCSSTransforms && mounted}
+            usePercentages={!mounted}
+            transformScale={transformScale}
+            w={l.w}
+            h={l.h}
+            x={l.x}
+            y={l.y}
+            i={l.i}
+            minH={l.minH}
+            minW={l.minW}
+            maxH={l.maxH}
+            maxW={l.maxW}
+            static={l.static}
+            resizeHandles={resizeHandlesOptions}
+            resizeHandle={dragging ? null : resizeHandle}
+          >
+            <div />
+          </ResizeItem>
+        )
       })
     }
-
-    const mergedClassName = clsx(layoutClassName, className);
-    const mergedStyle = {
-      height: this.containerHeight(),
-      ...style
-    };
-
-    return (
-      <React.Fragment>
-        <div
-          ref={innerRef}
-          className={mergedClassName}
-          style={mergedStyle}
-          onDrop={isDroppable ? this.onDrop : noop}
-          onDragLeave={isDroppable ? this.onDragLeave : noop}
-          onDragEnter={isDroppable ? this.onDragEnter : noop}
-          onDragOver={isDroppable ? this.onDragOver : noop}
-        >
-          {React.Children.map(this.props.children, child =>
-            this.processGridItem(child)
-          )}
-          {/*{isDroppable &&*/}
-          {/*  this.state.droppingDOMNode &&*/}
-          {/*  this.processGridItem(this.state.droppingDOMNode, true)}*/}
-          {/*{this.placeholder()}*/}
-        </div>
-        {
-          resizeItems.map(item => {
-            const l = item;
-            const {
-              width,
-              cols,
-              margin,
-              containerPadding,
-              rowHeight,
-              maxRows,
-              isDraggable,
-              isResizable,
-              isBounded,
-              useCSSTransforms,
-              transformScale,
-              draggableCancel,
-              draggableHandle,
-              resizeHandles,
-              resizeHandle
-            } = this.props;
-            const { mounted } = this.state;
-
-            // Determine user manipulations possible.
-            // If an item is static, it can't be manipulated by default.
-            // Any properties defined directly on the grid item will take precedence.
-            const draggable =
-              typeof l.isDraggable === "boolean"
-                ? l.isDraggable
-                : !l.static && isDraggable;
-            const resizable =
-              typeof l.isResizable === "boolean"
-                ? l.isResizable
-                : !l.static && isResizable;
-            const resizeHandlesOptions = l.resizeHandles || resizeHandles;
-
-            // isBounded set on child if set on parent, and child is not explicitly false
-            const bounded = draggable && isBounded && l.isBounded !== false;
-            return (
-              <ResizeItem
-                key={item.i}
-                containerWidth={width}
-                cols={cols}
-                margin={margin}
-                containerPadding={containerPadding || margin}
-                maxRows={maxRows}
-                rowHeight={rowHeight}
-                cancel={draggableCancel}
-                handle={draggableHandle}
-                onResizeStart={this.onResizeStart}
-                onResize={this.onResize}
-                onResizeStop={this.onResizeStop}
-                isResizable={resizable}
-                isBounded={bounded}
-                useCSSTransforms={useCSSTransforms && mounted}
-                usePercentages={!mounted}
-                transformScale={transformScale}
-                w={l.w}
-                h={l.h}
-                x={l.x}
-                y={l.y}
-                i={l.i}
-                minH={l.minH}
-                minW={l.minW}
-                maxH={l.maxH}
-                maxW={l.maxW}
-                static={l.static}
-                resizeHandles={resizeHandlesOptions}
-                resizeHandle={dragging ? null : resizeHandle}
-              >
-                <div />
-              </ResizeItem>
-            )
-          })
-        }
-      </React.Fragment>
-    );
+  </React.Fragment>
+);
   }
 }
