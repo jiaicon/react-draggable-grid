@@ -758,7 +758,7 @@ export default class ReactGridLayout extends React.Component<Props, State> {
     if (resizes.length) {
       const { x, y, w, h } = clacBox(resizes);
       resizeItems.push({
-        i: `${new Date().getTime()}`,
+        i: 'resize-item-current',
         x,
         y,
         w,
