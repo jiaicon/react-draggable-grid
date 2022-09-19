@@ -11,14 +11,11 @@ import {
   compact,
   compactType,
   fastRGLPropsEqual,
-  getAllCollisions,
   getLayoutItem,
-  moveElement,
   recurrenceMoveEle,
   recurrenceResizeEle,
   noop,
   synchronizeLayoutWithChildren,
-  withLayoutItem,
   clacBox
 } from "./utils";
 
@@ -35,7 +32,6 @@ import type {
 // Types
 import type {
   CompactType,
-  GridResizeEvent,
   GridDragEvent,
   DragOverEvent,
   Layout,
@@ -210,12 +206,12 @@ export default class ReactGridLayout extends React.Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
-    if (!this.state.activeDrag) {
-      const newLayout = this.state.layout;
-      const oldLayout = prevState.layout;
+    // if (!this.state.activeDrag) {
+    // const newLayout = this.state.layout;
+    // const oldLayout = prevState.layout;
 
-      // this.onLayoutMaybeChanged(newLayout, oldLayout);
-    }
+    // this.onLayoutMaybeChanged(newLayout, oldLayout);
+    // }
   }
 
   /**
@@ -294,17 +290,7 @@ export default class ReactGridLayout extends React.Component<Props, State> {
 
     // Move the element to the dragged location.
     const isUserAction = true;
-    // layout = moveElement(
-    //   layout,
-    //   l,
-    //   x,
-    //   y,
-    //   isUserAction,
-    //   preventCollision,
-    //   compactType(this.props),
-    //   cols,
-    //   allowOverlap
-    // );
+
     // 递归移动active里的每一项
     layout = recurrenceMoveEle(
       active,
@@ -352,17 +338,7 @@ export default class ReactGridLayout extends React.Component<Props, State> {
 
     // Move the element here
     const isUserAction = true;
-    // layout = moveElement(
-    //   layout,
-    //   l,
-    //   x,
-    //   y,
-    //   isUserAction,
-    //   preventCollision,
-    //   compactType(this.props),
-    //   cols,
-    //   allowOverlap
-    // );
+
     // 递归移动active里的每一项
     layout = recurrenceMoveEle(
       active,
@@ -580,14 +556,11 @@ export default class ReactGridLayout extends React.Component<Props, State> {
       rowHeight,
       maxRows,
       isDraggable,
-      isResizable,
       isBounded,
       useCSSTransforms,
       transformScale,
       draggableCancel,
       draggableHandle,
-      resizeHandles,
-      resizeHandle
     } = this.props;
     const { mounted, droppingPosition } = this.state;
 
@@ -598,11 +571,6 @@ export default class ReactGridLayout extends React.Component<Props, State> {
       typeof l.isDraggable === "boolean"
         ? l.isDraggable
         : !l.static && isDraggable;
-    const resizable =
-      typeof l.isResizable === "boolean"
-        ? l.isResizable
-        : !l.static && isResizable;
-    const resizeHandlesOptions = l.resizeHandles || resizeHandles;
 
     // isBounded set on child if set on parent, and child is not explicitly false
     const bounded = draggable && isBounded && l.isBounded !== false;
@@ -643,7 +611,7 @@ export default class ReactGridLayout extends React.Component<Props, State> {
 
   // Called while dragging an element. Part of browser native drag/drop API.
   // Native event target might be the layout itself, or an element within the layout.
-  onDragOver: DragOverEvent => void | false = e => {
+  onDragOver: DragOverEvent => (void | false) = e => {
     e.preventDefault(); // Prevent any browser native action
     e.stopPropagation();
 
@@ -730,175 +698,175 @@ export default class ReactGridLayout extends React.Component<Props, State> {
     }
   };
 
-removeDroppingPlaceholder: () => void = () => {
-  const { droppingItem, cols } = this.props;
-  const { layout } = this.state;
+  removeDroppingPlaceholder: () => void = () => {
+    const { droppingItem, cols } = this.props;
+    const { layout } = this.state;
 
-  const newLayout = compact(
-    layout.filter(l => l.i !== droppingItem.i),
-    compactType(this.props),
-    cols
-  );
+    const newLayout = compact(
+      layout.filter(l => l.i !== droppingItem.i),
+      compactType(this.props),
+      cols
+    );
 
-  this.setState({
-    layout: newLayout,
-    droppingDOMNode: null,
-    activeDrag: null,
-    droppingPosition: undefined
-  });
-};
+    this.setState({
+      layout: newLayout,
+      droppingDOMNode: null,
+      activeDrag: null,
+      droppingPosition: undefined
+    });
+  };
 
-onDragLeave: EventHandler = e => {
-  e.preventDefault(); // Prevent any browser native action
-  this.dragEnterCounter--;
+  onDragLeave: EventHandler = e => {
+    e.preventDefault(); // Prevent any browser native action
+    this.dragEnterCounter--;
 
-  // onDragLeave can be triggered on each layout's child.
-  // But we know that count of dragEnter and dragLeave events
-  // will be balanced after leaving the layout's container
-  // so we can increase and decrease count of dragEnter and
-  // when it'll be equal to 0 we'll remove the placeholder
-  if (this.dragEnterCounter === 0) {
+    // onDragLeave can be triggered on each layout's child.
+    // But we know that count of dragEnter and dragLeave events
+    // will be balanced after leaving the layout's container
+    // so we can increase and decrease count of dragEnter and
+    // when it'll be equal to 0 we'll remove the placeholder
+    if (this.dragEnterCounter === 0) {
+      this.removeDroppingPlaceholder();
+    }
+  };
+
+  onDragEnter: EventHandler = e => {
+    e.preventDefault(); // Prevent any browser native action
+    this.dragEnterCounter++;
+  };
+
+  onDrop: EventHandler = (e: Event) => {
+    e.preventDefault(); // Prevent any browser native action
+    const { droppingItem } = this.props;
+    const { layout } = this.state;
+    const item = layout.find(l => l.i === droppingItem.i);
+
+    // reset dragEnter counter on drop
+    this.dragEnterCounter = 0;
+
     this.removeDroppingPlaceholder();
-  }
-};
 
-onDragEnter: EventHandler = e => {
-  e.preventDefault(); // Prevent any browser native action
-  this.dragEnterCounter++;
-};
+    this.props.onDrop(layout, item, e);
+  };
 
-onDrop: EventHandler = (e: Event) => {
-  e.preventDefault(); // Prevent any browser native action
-  const { droppingItem } = this.props;
-  const { layout } = this.state;
-  const item = layout.find(l => l.i === droppingItem.i);
-
-  // reset dragEnter counter on drop
-  this.dragEnterCounter = 0;
-
-  this.removeDroppingPlaceholder();
-
-  this.props.onDrop(layout, item, e);
-};
-
-render(): React.Element < "div" > {
-  const { className, style, isDroppable, innerRef, active } = this.props;
-  const { layout=[], dragging } = this.state;
-  const resizes = layout.filter(item => active.includes(item.i));
-  const resizeItems = [];
-  // 合并resizes，只需要一层结构
-  if(resizes.length) {
-  const { x, y, w, h } = clacBox(resizes);
-  resizeItems.push({
-    i: 'qweqweqweqw',
-    x,
-    y,
-    w,
-    h,
-    moved: true,
-  })
-}
-
-const mergedClassName = clsx(layoutClassName, className);
-const mergedStyle = {
-  height: this.containerHeight(),
-  ...style
-};
-
-return (
-  <React.Fragment>
-    <div
-      ref={innerRef}
-      className={mergedClassName}
-      style={mergedStyle}
-      onDrop={isDroppable ? this.onDrop : noop}
-      onDragLeave={isDroppable ? this.onDragLeave : noop}
-      onDragEnter={isDroppable ? this.onDragEnter : noop}
-      onDragOver={isDroppable ? this.onDragOver : noop}
-    >
-      {React.Children.map(this.props.children, child =>
-        this.processGridItem(child)
-      )}
-      {/*{isDroppable &&*/}
-      {/*  this.state.droppingDOMNode &&*/}
-      {/*  this.processGridItem(this.state.droppingDOMNode, true)}*/}
-      {/*{this.placeholder()}*/}
-    </div>
-    {
-      resizeItems.map(item => {
-        const l = item;
-        const {
-          width,
-          cols,
-          margin,
-          containerPadding,
-          rowHeight,
-          maxRows,
-          isDraggable,
-          isResizable,
-          isBounded,
-          useCSSTransforms,
-          transformScale,
-          draggableCancel,
-          draggableHandle,
-          resizeHandles,
-          resizeHandle
-        } = this.props;
-        const { mounted } = this.state;
-
-        // Determine user manipulations possible.
-        // If an item is static, it can't be manipulated by default.
-        // Any properties defined directly on the grid item will take precedence.
-        const draggable =
-          typeof l.isDraggable === "boolean"
-            ? l.isDraggable
-            : !l.static && isDraggable;
-        const resizable =
-          typeof l.isResizable === "boolean"
-            ? l.isResizable
-            : !l.static && isResizable;
-        const resizeHandlesOptions = l.resizeHandles || resizeHandles;
-
-        // isBounded set on child if set on parent, and child is not explicitly false
-        const bounded = draggable && isBounded && l.isBounded !== false;
-        return (
-          <ResizeItem
-            key={item.i}
-            containerWidth={width}
-            cols={cols}
-            margin={margin}
-            containerPadding={containerPadding || margin}
-            maxRows={maxRows}
-            rowHeight={rowHeight}
-            cancel={draggableCancel}
-            handle={draggableHandle}
-            onResizeStart={this.onResizeStart}
-            onResize={this.onResize}
-            onResizeStop={this.onResizeStop}
-            isResizable={resizable}
-            isBounded={bounded}
-            useCSSTransforms={useCSSTransforms && mounted}
-            usePercentages={!mounted}
-            transformScale={transformScale}
-            w={l.w}
-            h={l.h}
-            x={l.x}
-            y={l.y}
-            i={l.i}
-            minH={l.minH}
-            minW={l.minW}
-            maxH={l.maxH}
-            maxW={l.maxW}
-            static={l.static}
-            resizeHandles={resizeHandlesOptions}
-            resizeHandle={dragging ? null : resizeHandle}
-          >
-            <div />
-          </ResizeItem>
-        )
+  render() {
+    const { className, style, isDroppable, innerRef, active } = this.props;
+    const { layout = [], dragging } = this.state;
+    const resizes = layout.filter(item => active.includes(item.i));
+    const resizeItems = [];
+    // 合并resizes，只需要一层结构
+    if (resizes.length) {
+      const { x, y, w, h } = clacBox(resizes);
+      resizeItems.push({
+        i: `${new Date().getTime()}`,
+        x,
+        y,
+        w,
+        h,
+        moved: true,
       })
     }
-  </React.Fragment>
-);
+
+    const mergedClassName = clsx(layoutClassName, className);
+    const mergedStyle = {
+      height: this.containerHeight(),
+      ...style
+    };
+
+    return (
+      <React.Fragment>
+        <div
+          ref={innerRef}
+          className={mergedClassName}
+          style={mergedStyle}
+          onDrop={isDroppable ? this.onDrop : noop}
+          onDragLeave={isDroppable ? this.onDragLeave : noop}
+          onDragEnter={isDroppable ? this.onDragEnter : noop}
+          onDragOver={isDroppable ? this.onDragOver : noop}
+        >
+          {React.Children.map(this.props.children, child =>
+            this.processGridItem(child)
+          )}
+          {/*{isDroppable &&*/}
+          {/*  this.state.droppingDOMNode &&*/}
+          {/*  this.processGridItem(this.state.droppingDOMNode, true)}*/}
+          {/*{this.placeholder()}*/}
+        </div>
+        {
+          resizeItems.map(item => {
+            const l = item;
+            const {
+              width,
+              cols,
+              margin,
+              containerPadding,
+              rowHeight,
+              maxRows,
+              isDraggable,
+              isResizable,
+              isBounded,
+              useCSSTransforms,
+              transformScale,
+              draggableCancel,
+              draggableHandle,
+              resizeHandles,
+              resizeHandle
+            } = this.props;
+            const { mounted } = this.state;
+
+            // Determine user manipulations possible.
+            // If an item is static, it can't be manipulated by default.
+            // Any properties defined directly on the grid item will take precedence.
+            const draggable =
+              typeof l.isDraggable === "boolean"
+                ? l.isDraggable
+                : !l.static && isDraggable;
+            const resizable =
+              typeof l.isResizable === "boolean"
+                ? l.isResizable
+                : !l.static && isResizable;
+            const resizeHandlesOptions = l.resizeHandles || resizeHandles;
+
+            // isBounded set on child if set on parent, and child is not explicitly false
+            const bounded = draggable && isBounded && l.isBounded !== false;
+            return (
+              <ResizeItem
+                key={item.i}
+                containerWidth={width}
+                cols={cols}
+                margin={margin}
+                containerPadding={containerPadding || margin}
+                maxRows={maxRows}
+                rowHeight={rowHeight}
+                cancel={draggableCancel}
+                handle={draggableHandle}
+                onResizeStart={this.onResizeStart}
+                onResize={this.onResize}
+                onResizeStop={this.onResizeStop}
+                isResizable={resizable}
+                isBounded={bounded}
+                useCSSTransforms={useCSSTransforms && mounted}
+                usePercentages={!mounted}
+                transformScale={transformScale}
+                w={l.w}
+                h={l.h}
+                x={l.x}
+                y={l.y}
+                i={l.i}
+                minH={l.minH}
+                minW={l.minW}
+                maxH={l.maxH}
+                maxW={l.maxW}
+                static={l.static}
+                resizeHandles={resizeHandlesOptions}
+                resizeHandle={dragging ? null : resizeHandle}
+              >
+                <div />
+              </ResizeItem>
+            )
+          })
+        }
+      </React.Fragment>
+    );
   }
 }
